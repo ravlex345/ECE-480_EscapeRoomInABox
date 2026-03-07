@@ -1,4 +1,5 @@
-#include <Keypad.h>
+#include "Keypad.h"
+#include <Wire.h>
 
 const byte ROWS = 4;
 const byte COLS = 4;
@@ -19,7 +20,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 #define GREEN_LED 10 // Correct password
 #define RED_LED 11 // Wrong password / keypress feedback
 #define RESET_BUTTON 12 // Physical reset button
-
+#define INTERRUPT_PIN 15
 // Password settings
 const String PASSWORD = "247B";
 const int MAX_TRIES = 3;
@@ -31,17 +32,24 @@ bool lockedOut = false;
 unsigned long lockoutEnd = 0;
 
 void setup() {
-Serial.begin(9600);
-pinMode(GREEN_LED, OUTPUT);
-pinMode(RED_LED, OUTPUT);
-pinMode(RESET_BUTTON, INPUT_PULLUP);
-resetSystem();
-Serial.println("=== KEYPAD TEST ===");
-Serial.print("Password: ");
-Serial.println(PASSWORD);
-Serial.println("Red flashes on keypress");
-Serial.println("Press # to submit, * to clear");
-Serial.println();
+  Serial.begin(9600);
+    Wire.begin(8);                // Join I2C bus as Slave with address 8
+  Wire.onReceive(receiveEvent); // Register a function to handle incoming data
+
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(RESET_BUTTON, INPUT_PULLUP);
+  pinMode(INTERRUPT_PIN, OUTPUT);
+  resetSystem();
+  Serial.println("=== KEYPAD TEST ===");
+  Serial.print("Password: ");
+  Serial.println(PASSWORD);
+  Serial.println("Red flashes on keypress");
+  Serial.println("Press # to submit, * to clear");
+  Serial.println();
+
+  digitalWrite(INTERRUPT_PIN, HIGH);
+
 }
 
 void loop() {
@@ -107,6 +115,7 @@ solved = true;
 digitalWrite(GREEN_LED, HIGH);
 digitalWrite(RED_LED, LOW);
 Serial.println("*** CORRECT! ***");
+digitalWrite( INTERRUPT_PIN, LOW);
 victoryFlash();
 } else {
 // WRONG! Red stays on
@@ -160,3 +169,10 @@ delay(100);
 }
 }
 
+void receiveEvent(int howMany) {
+  while (Wire.available()) { 
+    char c = Wire.read();      // Receive byte as a character
+    Serial.print(c);
+  }
+  Serial.println();
+}

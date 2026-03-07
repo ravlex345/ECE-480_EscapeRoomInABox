@@ -3,7 +3,7 @@ int pushButton1 = 14;
 int pushButton2 = 15;
 int pushButton3 = 16;
 int pushButton4 = 17;
-int pushButton5 = 18;
+int pushButton5 = 2;
 
 enum buttonStates {initial,correct1, wrong1, correct2, wrong2, correct3, wrong3, correct4, wrong4};
 buttonStates state;
@@ -60,7 +60,7 @@ void loop() {
   {
     state = initial;
   }
-printState(state);
+  printState(state);
   Serial.println(value5);
 
 delay(300);
