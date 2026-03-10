@@ -23,6 +23,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 #define INTERRUPT_PIN 15
 // Password settings
 const String PASSWORD = "247B";
+const String RESETCODE = "DDDD";
 const int MAX_TRIES = 3;
 
 String enteredCode = "";
@@ -77,7 +78,7 @@ digitalWrite(RED_LED, LOW);
 Serial.println("Lockout ended.");
 }
 // Skip if solved or locked out
-if (solved || lockedOut) return;
+if ( lockedOut) return;
 char key = keypad.getKey();
 if (key) handleKey(key);
 }
@@ -117,7 +118,11 @@ digitalWrite(RED_LED, LOW);
 Serial.println("*** CORRECT! ***");
 digitalWrite( INTERRUPT_PIN, LOW);
 victoryFlash();
-} else {
+} 
+else if (enteredCode == RESETCODE) {
+  resetSystem();
+  }
+else {
 // WRONG! Red stays on
 attempts++;
 Serial.print("WRONG! Try ");
@@ -158,6 +163,8 @@ lockedOut = false;
 digitalWrite(GREEN_LED, LOW);
 digitalWrite(RED_LED, LOW);
 Serial.println(">>> RESET <<<");
+digitalWrite( INTERRUPT_PIN, HIGH);
+
 }
 
 void victoryFlash() {

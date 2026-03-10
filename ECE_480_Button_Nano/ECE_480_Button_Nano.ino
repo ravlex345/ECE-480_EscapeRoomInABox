@@ -1,15 +1,15 @@
 
-int pushButton1 = 14;
-int pushButton2 = 15;
-int pushButton3 = 16;
-int pushButton4 = 17;
-int pushButton5 = 2;
+int pushButton1 = 2;
+int pushButton2 = 3;
+int pushButton3 = 4;
+int pushButton4 = 5;
+int pushButton5 = 6;
 
 enum buttonStates {initial,correct1, wrong1, correct2, wrong2, correct3, wrong3, correct4, wrong4};
 buttonStates state;
 
-int redLight = 6;
-int greenLight = 7;
+int redLight = 8;
+int greenLight =9;
 
 void printState(buttonStates s) {
   switch(s) {
@@ -31,16 +31,18 @@ void setup() {
 
   Serial.begin(9600);
   
-  pinMode( pushButton1, INPUT);
-  pinMode( pushButton2, INPUT);
-  pinMode( pushButton3, INPUT);
-  pinMode( pushButton4, INPUT);
-  pinMode( pushButton5, INPUT);
+  pinMode( pushButton1, INPUT_PULLUP);
+  pinMode( pushButton2, INPUT_PULLUP);
+  pinMode( pushButton3, INPUT_PULLUP);
+  pinMode( pushButton4, INPUT_PULLUP);
+  pinMode( pushButton5, INPUT_PULLUP);
 
   pinMode (redLight , OUTPUT);
   pinMode (greenLight , OUTPUT);
 
   state = initial;
+  digitalWrite(redLight, LOW);
+  digitalWrite(greenLight, LOW);
 }
 
 void loop() {
@@ -67,52 +69,62 @@ delay(300);
 
   switch(state){
     case initial:
-          digitalWrite(redLight, LOW);
-      digitalWrite(greenLight, LOW);
+        digitalWrite(redLight, LOW);
+        digitalWrite(greenLight, LOW);
 
       if (value1 == 0) {
         state = correct1;
+        flashRedQuick();
       }
       else if (value2 == 0 or value3 == 0 or value4 == 0){
         state = wrong1;
+        flashRedQuick();
       }
       break;
       
     case correct1:
+      
       if (value2 == 0) {
         state = correct2;
+        flashRedQuick();
       }
       else if (value1 == 0 or value3 == 0 or value4 == 0){
         state = wrong2;
+        flashRedQuick();
       }
       break;
 
    case correct2:
     if (value3 == 0) {
       state = correct3;
+      flashRedQuick();
     }
-    else if (value2 == 0 or value2 == 0 or value4 == 0){
+    else if (value2 == 0 or value1 == 0 or value4 == 0){
       state = wrong2;
+      flashRedQuick();
     }
     break;
 
     case correct3:
     if (value4 == 0){
       state = correct4;
+      flashRedQuick();
     }
     else if (value2 == 0 or value3 == 0 or value1 == 0){
       state = wrong4;
+      flashRedQuick();
     }
     break;
     
     case correct4:
       digitalWrite(greenLight, HIGH);
-      
+      digitalWrite(redLight, LOW);
       break;
       
     case wrong1:
       if (value1 == 0 or value2 == 0 or value3 == 0 or value4 == 0){
         state = wrong2;
+        flashRedQuick();
        }
       break;
 
@@ -120,20 +132,29 @@ delay(300);
     
     if (value1 == 0 or value2 == 0 or value3 == 0 or value4 == 0){
         state = wrong3;
+        flashRedQuick();
        }
        break;
 
     case wrong3:
       if (value1 == 0 or value2 == 0 or value3 == 0 or value4 == 0){
         state = wrong4;
+        flashRedQuick();
        }
        break;
       
     case wrong4:
       digitalWrite(redLight, HIGH);
+      digitalWrite(greenLight, LOW);
       break;
   }
 
-
   
+}
+
+void flashRedQuick() {
+// Quick red flash for keypress feedback
+digitalWrite(redLight, HIGH);
+delay(30);
+digitalWrite(redLight, LOW);
 }

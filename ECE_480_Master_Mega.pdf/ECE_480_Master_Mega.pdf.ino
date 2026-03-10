@@ -18,19 +18,24 @@ void setup() {
 
 void loop() {
   if (digitalRead(PUZZLE_1) == LOW && !sent){
-    sent = true;
-      Serial.println("Connection");
+      sent = true;
+      Serial.println("PUZZLE 1 Complete");
       Servo1.write(0);
       Servo1.write(75);
       delay(2000);
       Servo1.write(130);
-      delay(2000);      
+      delay(2000);  
       // Wire.beginTransmission(8); // Send to Slave address 8
       // Serial.println("Mega Master Initialized");
       // Wire.write("PUZZLE ENDED - MASTER");       // Send data
       // Wire.endTransmission();    // Stop transmitting
 
 
+  }
+  else if (digitalRead(PUZZLE_1) == HIGH){
+    Servo1.write(0);
+    Serial.println("RESET");
+    sent = false;
   }
   // Wire.requestFrom(8, 2);
   //   while (Wire.available()) { 
