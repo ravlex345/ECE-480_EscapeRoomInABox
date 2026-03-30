@@ -1,14 +1,15 @@
 #include "Keypad.h"
 #include <Wire.h>
 
+// ===================== KEYPAD SETUP =====================
 const byte ROWS = 4;
 const byte COLS = 4;
-
+bool PuzzleActive = false;
 char keys[ROWS][COLS] = {
-{'1', '2', '3', 'A'},
-{'4', '5', '6', 'B'},
-{'7', '8', '9', 'C'},
-{'*', '0', '#', 'D'}
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
 };
 
 byte rowPins[ROWS] = {2, 3, 4, 5};
@@ -16,170 +17,209 @@ byte colPins[COLS] = {6, 7, 8, 9};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// Pins
-#define GREEN_LED 10 // Correct password
-#define RED_LED 11 // Wrong password / keypress feedback
-#define RESET_BUTTON 12 // Physical reset button
+// ===================== PIN DEFINITIONS =====================
+#define GREEN_LED 10
+#define RED_LED 11
+#define RESET_BUTTON 12
 #define INTERRUPT_PIN 15
-// Password settings
-const String PASSWORD = "247B";
-const String RESETCODE = "DDDD";
-const int MAX_TRIES = 3;
 
+// ===================== PASSWORD SETTINGS =====================
+const String PASSWORD  = "247B";
+const String RESETCODE = "DDDD";
+const int MAX_TRIES    = 3;
+
+// ===================== STATE VARIABLES =====================
 String enteredCode = "";
 int attempts = 0;
+
 bool solved = false;
 bool lockedOut = false;
+
 unsigned long lockoutEnd = 0;
 
+// ===================== SETUP =====================
 void setup() {
   Serial.begin(9600);
-    Wire.begin(8);                // Join I2C bus as Slave with address 8
-  Wire.onReceive(receiveEvent); // Register a function to handle incoming data
+
+  Wire.begin(8);                // I2C slave address
+  Wire.onReceive(receiveEvent); // I2C receive handler
 
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
   pinMode(RESET_BUTTON, INPUT_PULLUP);
   pinMode(INTERRUPT_PIN, OUTPUT);
-  resetSystem();
-  Serial.println("=== KEYPAD TEST ===");
-  Serial.print("Password: ");
-  Serial.println(PASSWORD);
-  Serial.println("Red flashes on keypress");
-  Serial.println("Press # to submit, * to clear");
-  Serial.println();
-
   digitalWrite(INTERRUPT_PIN, HIGH);
-
+  Serial.println("Setup for Puzzle1 complete");
 }
 
+// ===================== MAIN LOOP =====================
 void loop() {
-// Check reset button
-if (digitalRead(RESET_BUTTON) == LOW) {
-delay(50);
-if (digitalRead(RESET_BUTTON) == LOW) {
-Serial.println(">>> RESET <<<");
-resetSystem();
-while (digitalRead(RESET_BUTTON) == LOW);
-}
-}
-// Check serial reset
-if (Serial.available()) {
-char cmd = Serial.read();
-if (cmd == 'r' || cmd == 'R') {
-resetSystem();
-}
-}
-// Handle lockout
-if (lockedOut && millis() > lockoutEnd) {
-lockedOut = false;
-attempts = 0;
-digitalWrite(RED_LED, LOW);
-Serial.println("Lockout ended.");
-}
-// Skip if solved or locked out
-if ( lockedOut) return;
-char key = keypad.getKey();
-if (key) handleKey(key);
+  handleSerialReset();
+  handleLockout();
+  if (!PuzzleActive) return;
+  // Skip input if locked out
+  if (lockedOut) return;
+  
+  char key = keypad.getKey();
+  if (key) handleKey(key);
 }
 
-void handleKey(char key) {
-Serial.print("Key: ");
-Serial.println(key);
-// RED FLASH on every keypress
-flashRedQuick();
-// Clear with *
-if (key == '*') {
-enteredCode = "";
-Serial.println("--- Cleared ---");
-return;
-}
-// Submit with #
-if (key == '#') {
-checkPassword();
-return;
-}
-// Add to code
-if (enteredCode.length() < 4) {
-enteredCode += key;
-Serial.print("Entered: ");
-Serial.println(enteredCode);
-}
-}
 
-void checkPassword() {
-Serial.print("Checking: ");
-Serial.println(enteredCode);
-if (enteredCode == PASSWORD) {
-// CORRECT! Green on, red off
-solved = true;
-digitalWrite(GREEN_LED, HIGH);
-digitalWrite(RED_LED, LOW);
-Serial.println("*** CORRECT! ***");
-digitalWrite( INTERRUPT_PIN, LOW);
-victoryFlash();
-} 
-else if (enteredCode == RESETCODE) {
-  resetSystem();
+
+void handleSerialReset() {
+  if (Serial.available()) {
+    char cmd = Serial.read();
+    if (cmd == 'r' || cmd == 'R') {
+      Serial.println(">>> SERIAL RESET <<<");
+      resetSystem();
+    }
   }
-else {
-// WRONG! Red stays on
-attempts++;
-Serial.print("WRONG! Try ");
-Serial.print(attempts);
-Serial.println("/3");
-digitalWrite(RED_LED, HIGH);
-delay(500);
-digitalWrite(RED_LED, LOW);
-// Build up: 1 flash = 1 wrong, 2 flashes = 2 wrongs, etc
-for (int i = 1; i < attempts; i++) {
-delay(200);
-digitalWrite(RED_LED, HIGH);
-delay(200);
-digitalWrite(RED_LED, LOW);
-}
-if (attempts >= MAX_TRIES) {
-lockedOut = true;
-lockoutEnd = millis() + 10000;
-digitalWrite(RED_LED, HIGH);
-Serial.println("!!! LOCKED OUT !!!");
-}
-}
-enteredCode = "";
 }
 
+void handleLockout() {
+  if (lockedOut && millis() > lockoutEnd) {
+    lockedOut = false;
+    attempts = 0;
+    digitalWrite(RED_LED, LOW);
+    Serial.println("Lockout ended.");
+  }
+}
+
+// ===================== KEYPAD LOGIC =====================
+void handleKey(char key) {
+  Serial.print("Key: ");
+  Serial.println(key);
+
+  flashRedQuick();
+
+  if (key == '*') {
+    clearEntry();
+    return;
+  }
+
+  if (key == '#') {
+    checkPassword();
+    return;
+  }
+
+  if (enteredCode.length() < 4) {
+    enteredCode += key;
+    Serial.print("Entered: ");
+    Serial.println(enteredCode);
+  }
+}
+
+void clearEntry() {
+  enteredCode = "";
+  Serial.println("--- Entry Cleared ---");
+}
+
+// ===================== PASSWORD CHECK =====================
+void checkPassword() {
+  Serial.print("Checking: ");
+  Serial.println(enteredCode);
+
+  if (enteredCode == PASSWORD) {
+    handleCorrectPassword();
+  } 
+  else if (enteredCode == RESETCODE) {
+    resetSystem();
+  } 
+  else {
+    handleWrongPassword();
+  }
+
+  enteredCode = "";
+}
+
+void handleCorrectPassword() {
+  solved = true;
+
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(INTERRUPT_PIN, LOW);
+
+  Serial.println("*** CORRECT PASSWORD ***");
+
+  victoryFlash();
+}
+
+void handleWrongPassword() {
+  attempts++;
+
+  Serial.print("WRONG! Attempt ");
+  Serial.print(attempts);
+  Serial.print("/");
+  Serial.println(MAX_TRIES);
+
+  // Initial red feedback
+  digitalWrite(RED_LED, HIGH);
+  delay(500);
+  digitalWrite(RED_LED, LOW);
+
+  // Flash count feedback
+  for (int i = 1; i < attempts; i++) {
+    delay(200);
+    digitalWrite(RED_LED, HIGH);
+    delay(200);
+    digitalWrite(RED_LED, LOW);
+  }
+
+  // Lockout condition
+  if (attempts >= MAX_TRIES) {
+    lockedOut = true;
+    lockoutEnd = millis() + 10000;
+
+    digitalWrite(RED_LED, HIGH);
+    Serial.println("!!! SYSTEM LOCKED OUT !!!");
+  }
+}
+
+// ===================== LED EFFECTS =====================
 void flashRedQuick() {
-// Quick red flash for keypress feedback
-digitalWrite(RED_LED, HIGH);
-delay(30);
-digitalWrite(RED_LED, LOW);
-}
-
-void resetSystem() {
-enteredCode = "";
-attempts = 0;
-solved = false;
-lockedOut = false;
-digitalWrite(GREEN_LED, LOW);
-digitalWrite(RED_LED, LOW);
-Serial.println(">>> RESET <<<");
-digitalWrite( INTERRUPT_PIN, HIGH);
-
+  digitalWrite(RED_LED, HIGH);
+  delay(30);
+  digitalWrite(RED_LED, LOW);
 }
 
 void victoryFlash() {
-for (int i = 0; i < 10; i++) {
-digitalWrite(GREEN_LED, LOW);
-delay(100);
-digitalWrite(GREEN_LED, HIGH);
-delay(100);
-}
+  for (int i = 0; i < 10; i++) {
+    digitalWrite(GREEN_LED, LOW);
+    delay(100);
+    digitalWrite(GREEN_LED, HIGH);
+    delay(100);
+  }
 }
 
+// ===================== RESET =====================
+void resetSystem() {
+  enteredCode = "";
+  attempts = 0;
+  solved = false;
+  lockedOut = false;
+
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(INTERRUPT_PIN, HIGH);
+  Serial.println("=== KEYPAD SYSTEM READY ===");
+  Serial.print("Password: ");
+  Serial.println(PASSWORD);
+  Serial.println("Press # to submit, * to clear\n");
+
+  Serial.println(">>> SYSTEM RESET <<<");
+}
+
+// ===================== I2C RECEIVE =====================
 void receiveEvent(int howMany) {
-  while (Wire.available()) { 
-    char c = Wire.read();      // Receive byte as a character
-    Serial.print(c);
+  String word = "";
+  while (Wire.available()) {
+    char c = Wire.read();
+    word += c;
   }
-  Serial.println();
+  if (word == "S"){
+    resetSystem();
+    PuzzleActive = true;
+    Serial.print("Functioning");
+  }
+  Serial.print("Got message");
 }

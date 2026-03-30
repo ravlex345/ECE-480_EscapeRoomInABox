@@ -1,8 +1,11 @@
+#include "Wire.h"
 
 int pushButton1 = 2;
 int pushButton2 = 3;
 int pushButton3 = 4;
 int pushButton4 = 5;
+
+
 int pushButton5 = 6;
 
 enum buttonStates {initial,correct1, wrong1, correct2, wrong2, correct3, wrong3, correct4, wrong4};
@@ -10,6 +13,10 @@ buttonStates state;
 
 int redLight = 8;
 int greenLight =9;
+
+bool PuzzleActive = false;
+
+#define INTERRUPT_PIN 11
 
 void printState(buttonStates s) {
   switch(s) {
@@ -40,12 +47,21 @@ void setup() {
   pinMode (redLight , OUTPUT);
   pinMode (greenLight , OUTPUT);
 
+  pinMode( INTERRUPT_PIN, OUTPUT);
   state = initial;
   digitalWrite(redLight, LOW);
   digitalWrite(greenLight, LOW);
+  digitalWrite(INTERRUPT_PIN, HIGH);
+
+  Wire.begin(9);                // I2C slave address
+  Wire.onReceive(receiveEvent); // I2C receive handler
+
+  Serial.println("Setup for puzzle 2 done");
 }
 
 void loop() {
+  if (!PuzzleActive) return;
+
   // put your main code here, to run repeatedly:
   bool value1 = digitalRead(pushButton1); 
   bool value2 = digitalRead(pushButton2);
@@ -108,6 +124,7 @@ delay(300);
     case correct3:
     if (value4 == 0){
       state = correct4;
+    
       flashRedQuick();
     }
     else if (value2 == 0 or value3 == 0 or value1 == 0){
@@ -119,6 +136,7 @@ delay(300);
     case correct4:
       digitalWrite(greenLight, HIGH);
       digitalWrite(redLight, LOW);
+      digitalWrite(INTERRUPT_PIN, LOW);
       break;
       
     case wrong1:
@@ -157,4 +175,25 @@ void flashRedQuick() {
 digitalWrite(redLight, HIGH);
 delay(30);
 digitalWrite(redLight, LOW);
+}
+
+// ===================== I2C RECEIVE =====================
+void receiveEvent(int howMany) {
+  String word = "";
+  while (Wire.available()) {
+    char c = Wire.read();
+    word += c;
+  }
+  if (word == "S"){
+    PuzzleActive = true;
+  }
+  if (word == "R"){
+    PuzzleActive = false;
+    state = initial;
+    digitalWrite(INTERRUPT_PIN, HIGH);
+    digitalWrite(redLight, LOW);
+    digitalWrite(redLight, HIGH);
+
+  }
+  Serial.print("Got message");
 }
