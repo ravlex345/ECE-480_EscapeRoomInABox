@@ -1,12 +1,12 @@
 #include "Wire.h"
 
-int pushButton1 = 2;
+int pushButton1 = 16;
 int pushButton2 = 3;
-int pushButton3 = 4;
+int pushButton3 = 7;
 int pushButton4 = 5;
 
 
-int pushButton5 = 6;
+int pushButton5 = 14;
 
 enum buttonStates {initial,correct1, wrong1, correct2, wrong2, correct3, wrong3, correct4, wrong4};
 buttonStates state;
@@ -49,6 +49,7 @@ void setup() {
 
   pinMode( INTERRUPT_PIN, OUTPUT);
   state = initial;
+
   digitalWrite(redLight, LOW);
   digitalWrite(greenLight, LOW);
   digitalWrite(INTERRUPT_PIN, HIGH);
@@ -68,7 +69,15 @@ void loop() {
   bool value3 = digitalRead(pushButton3);
   bool value4 = digitalRead(pushButton4);
   bool value5 = digitalRead(pushButton5);
-  
+      Serial.println(value1);
+    Serial.println(value2);
+    Serial.println(value3);
+    Serial.println(value4);
+        Serial.println(value5);
+
+    Serial.println();
+
+
 //  Serial.println(value1);
 //  Serial.println(value2);
 //  Serial.println(value3);
@@ -79,7 +88,7 @@ void loop() {
     state = initial;
   }
   printState(state);
-  Serial.println(value5);
+  //Serial.println(value5);
 
 delay(300);
 
@@ -105,6 +114,7 @@ delay(300);
         flashRedQuick();
       }
       else if (value1 == 0 or value3 == 0 or value4 == 0){
+  
         state = wrong2;
         flashRedQuick();
       }
@@ -192,7 +202,9 @@ void receiveEvent(int howMany) {
     state = initial;
     digitalWrite(INTERRUPT_PIN, HIGH);
     digitalWrite(redLight, LOW);
-    digitalWrite(redLight, HIGH);
+    digitalWrite(greenLight, LOW);
+      Serial.print("Reset");
+
 
   }
   Serial.print("Got message");
