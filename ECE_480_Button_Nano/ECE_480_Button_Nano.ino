@@ -1,11 +1,11 @@
 #include "Wire.h"
 
 // ===================== BUTTON PINS =====================
-int pushButton1 = 16;
-int pushButton2 = 3;
-int pushButton3 = 7;
-int pushButton4 = 12;
-int pushButton5 = 15;
+int pushButton1 = 12;
+int pushButton2 = 10;
+int pushButton3 = 6;
+int pushButton4 = 4;
+int pushButton5 = 8;
 
 // Tuple-style grouping (array in Arduino)
 int buttons[4] = {pushButton1, pushButton2, pushButton3, pushButton4};
@@ -17,10 +17,10 @@ buttonStates state;
 bool lastButtonState[4] = {HIGH, HIGH, HIGH, HIGH};
 
 // ===================== OUTPUTS =====================
-int redLight = 8;
-int greenLight = 9;
+int redLight = 2;
+int greenLight = 3;
 
-#define INTERRUPT_PIN 11
+#define INTERRUPT_PIN A1
 
 bool PuzzleActive = false;
 
@@ -63,7 +63,7 @@ void loop() {
   }
 
   // 2. Only process if active
-  //if (!PuzzleActive) return;
+  if (!PuzzleActive) return;
 
   // 3. Check buttons (edge detection)
   for (int i = 0; i < 4; i++) {
@@ -169,7 +169,7 @@ void receiveEvent(int howMany) {
     } 
     else if (c == 'R') {
       PuzzleActive = false;
-      state = initial; // keep ISR safe
+      performFullReset();
     }
   }
 }

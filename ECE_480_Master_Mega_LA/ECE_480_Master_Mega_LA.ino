@@ -77,6 +77,8 @@ void loop() {
 
   }
   else if (digitalRead(PUZZLE_1) == HIGH && sent1){
+    Serial.println("Reseting");
+
     ServoCompartment.write(100);
     digitalWrite(ACTUATOR_UP, HIGH);
     digitalWrite(ACTUATOR_DOWN, HIGH);//Deactivate both relays to brake the motor
@@ -91,7 +93,7 @@ void loop() {
     delay(200);}
     sent1 = false;
     sent2 = false;
-    rsent = true;
+    rsent = false;
     Serial.println("Reset Sent");
 
   }
