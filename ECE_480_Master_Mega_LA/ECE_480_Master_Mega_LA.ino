@@ -27,8 +27,6 @@ void setup() {
   delay(18000);// wait 2 seconds
 
   ServoCompartment.attach(SERVO_COMPARTMENT);
-  ServoCompartment.write(100);
-  delay(1000);      // give servo time
 
   Wire.begin();     // start I2C AFTER servo
   Serial.println("=== MEGA RESET ===");
@@ -57,9 +55,11 @@ void loop() {
       Wire.beginTransmission(9); // Send to Slave address 9, puzzle 2
       Wire.write("S");       // Send data
       Wire.endTransmission();    // Stop transmitting
+      ServoCompartment.writeMicroseconds(500);  
+      delay(9000);
+      ServoCompartment.write(90);  
       Serial.println("sent to puzzle 2");
 ;
-      ServoCompartment.write(200);
       //delay(2000);  
 
   }
@@ -79,12 +79,16 @@ void loop() {
   else if (digitalRead(PUZZLE_1) == HIGH && sent1){
     Serial.println("Reseting");
 
-    ServoCompartment.write(100);
     digitalWrite(ACTUATOR_UP, HIGH);
     digitalWrite(ACTUATOR_DOWN, HIGH);//Deactivate both relays to brake the motor
     delay(18000);  
     digitalWrite(ACTUATOR_UP, HIGH);
     digitalWrite(ACTUATOR_DOWN, LOW);//Deactivate both relays to brake the motor
+
+    ServoCompartment.writeMicroseconds(1800);
+    delay(12000);
+    ServoCompartment.write(90);  
+
     
     if (!rsent){
     Wire.beginTransmission(9); // Send to Slave address 9, puzzle 2
